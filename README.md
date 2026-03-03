@@ -6,62 +6,76 @@ Cron for Claude — run prompts on a schedule from a terminal UI.
 
 ### Linux
 
+**With auto-start at login (recommended)**
+
 ```bash
 curl -L https://github.com/tenlisboa/tempo/releases/latest/download/tempo_linux_amd64.tar.gz | tar -xz
 sudo mv tempod tempo /usr/local/bin/
+mkdir -p ~/.config/systemd/user
+cp tempod.service ~/.config/systemd/user/
+systemctl --user daemon-reload
+systemctl --user enable --now tempod
 ```
 
-For ARM64:
+**Without auto-start**
 
 ```bash
-curl -L https://github.com/tenlisboa/tempo/releases/latest/download/tempo_linux_arm64.tar.gz | tar -xz
+curl -L https://github.com/tenlisboa/tempo/releases/latest/download/tempo_linux_amd64.tar.gz | tar -xz
 sudo mv tempod tempo /usr/local/bin/
-```
-
-After installing, start the daemon:
-
-```bash
 tempod &
 ```
 
-Or install as a systemd user service (see [manual install](#manual-install-from-source)).
+For ARM64, replace `linux_amd64` with `linux_arm64` in the download URL.
 
 ### macOS
+
+**With auto-start at login (recommended)**
 
 ```bash
 curl -L https://github.com/tenlisboa/tempo/releases/latest/download/tempo_darwin_arm64.tar.gz | tar -xz
 mv tempod tempo /usr/local/bin/
+sed "s|/Users/Shared/placeholder|$(which tempod)|" com.tempod.plist \
+  > ~/Library/LaunchAgents/com.tempod.plist
+launchctl load -w ~/Library/LaunchAgents/com.tempod.plist
 ```
 
-For Intel Macs:
+**Without auto-start**
 
 ```bash
-curl -L https://github.com/tenlisboa/tempo/releases/latest/download/tempo_darwin_amd64.tar.gz | tar -xz
+curl -L https://github.com/tenlisboa/tempo/releases/latest/download/tempo_darwin_arm64.tar.gz | tar -xz
 mv tempod tempo /usr/local/bin/
-```
-
-After installing, start the daemon:
-
-```bash
 tempod &
 ```
 
-Or install as a launchd user agent (see [manual install](#manual-install-from-source)).
+For Intel Macs, replace `darwin_arm64` with `darwin_amd64` in the download URL.
 
 ### Windows
 
-1. Download [tempo_windows_amd64.zip](https://github.com/tenlisboa/tempo/releases/latest/download/tempo_windows_amd64.zip)
-2. Extract the archive
-3. Move `tempod.exe` and `tempo.exe` to a directory in your `PATH`
-4. Start the daemon: `tempod.exe`
+**With auto-start at login (recommended)**
+
+1. Download and extract [tempo_windows_amd64.zip](https://github.com/tenlisboa/tempo/releases/latest/download/tempo_windows_amd64.zip)
+2. Move `tempo.exe` to a directory in your `PATH`
+3. Run in PowerShell from the extracted folder:
+
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+.\install-service.ps1
+```
+
+This registers `tempod` as a Task Scheduler task that starts at login and restarts automatically if it crashes. No third-party tools required.
+
+**Without auto-start**
+
+1. Download and extract [tempo_windows_amd64.zip](https://github.com/tenlisboa/tempo/releases/latest/download/tempo_windows_amd64.zip)
+2. Move `tempod.exe` and `tempo.exe` to a directory in your `PATH`
+3. Start the daemon manually: `tempod.exe`
 
 ## Usage
 
-The daemon must be running before using the TUI:
+Once the daemon is running, open the TUI:
 
 ```bash
-tempod &   # start daemon
-tempo      # open TUI
+tempo
 ```
 
 The TUI lets you create, edit, enable, and disable scheduled Claude prompts.
