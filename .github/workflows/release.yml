@@ -1,0 +1,61 @@
+name: Release
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Build all targets
+        run: |
+          mkdir -p dist
+
+          targets=(
+            "linux/amd64"
+            "linux/arm64"
+            "darwin/amd64"
+            "darwin/arm64"
+            "windows/amd64"
+          )
+
+          for target in "${targets[@]}"; do
+            GOOS="${target%/*}"
+            GOARCH="${target#*/}"
+            out_dir="dist/${GOOS}_${GOARCH}"
+            mkdir -p "$out_dir"
+
+            tempod_bin="$out_dir/tempod"
+            tempo_bin="$out_dir/tempo"
+            if [ "$GOOS" = "windows" ]; then
+              tempod_bin="$out_dir/tempod.exe"
+              tempo_bin="$out_dir/tempo.exe"
+            fi
+
+            GOOS=$GOOS GOARCH=$GOARCH go build -o "$tempod_bin" ./cmd/tempod
+            GOOS=$GOOS GOARCH=$GOARCH go build -o "$tempo_bin"  ./cmd/tempo
+
+            archive="dist/tempo_${GOOS}_${GOARCH}"
+            if [ "$GOOS" = "windows" ]; then
+              zip -j "${archive}.zip" "$tempod_bin" "$tempo_bin"
+            else
+              tar -czf "${archive}.tar.gz" -C "$out_dir" tempod tempo
+            fi
+          done
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/tempo_linux_amd64.tar.gz
+            dist/tempo_linux_arm64.tar.gz
+            dist/tempo_darwin_amd64.tar.gz
+            dist/tempo_darwin_arm64.tar.gz
+            dist/tempo_windows_amd64.zip

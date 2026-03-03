@@ -1,0 +1,13 @@
+[Unit]
+Description=tempo background scheduler
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=%h/.local/bin/tempod
+Restart=on-failure
+RestartSec=5s
+Environment=PATH=/usr/local/bin:/usr/bin:/bin:%h/.local/bin
+
+[Install]
+WantedBy=default.target
