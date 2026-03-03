@@ -46,9 +46,14 @@ jobs:
 
             archive="dist/tempo_${GOOS}_${GOARCH}"
             if [ "$GOOS" = "windows" ]; then
-              zip -j "${archive}.zip" "$tempod_bin" "$tempo_bin"
-            else
-              tar -czf "${archive}.tar.gz" -C "$out_dir" tempod tempo
+              cp windows/install-service.ps1 "$out_dir/"
+              zip -j "${archive}.zip" "$tempod_bin" "$tempo_bin" "$out_dir/install-service.ps1"
+            elif [ "$GOOS" = "linux" ]; then
+              cp systemd/tempod.service "$out_dir/"
+              tar -czf "${archive}.tar.gz" -C "$out_dir" tempod tempo tempod.service
+            elif [ "$GOOS" = "darwin" ]; then
+              cp launchd/com.tempod.plist "$out_dir/"
+              tar -czf "${archive}.tar.gz" -C "$out_dir" tempod tempo com.tempod.plist
             fi
           done
 
