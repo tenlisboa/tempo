@@ -1,6 +1,6 @@
 # tempo
 
-A personal Claude task scheduler. `tempod` runs `claude --print <prompt>` on a schedule; `tempo` is the terminal UI for managing tasks.
+Cron for Claude — run prompts on a schedule from a terminal UI.
 
 ## Installation
 
