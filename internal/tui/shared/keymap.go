@@ -3,23 +3,25 @@ package shared
 import "github.com/charmbracelet/bubbles/key"
 
 type ListKeyMap struct {
-	New    key.Binding
-	Edit   key.Binding
-	Delete key.Binding
-	Run    key.Binding
-	Logs   key.Binding
-	Toggle key.Binding
-	Quit   key.Binding
+	New     key.Binding
+	Edit    key.Binding
+	Delete  key.Binding
+	Run     key.Binding
+	Logs    key.Binding
+	Toggle  key.Binding
+	Quit    key.Binding
+	Restart key.Binding
 }
 
 var ListKeys = ListKeyMap{
-	New:    key.NewBinding(key.WithKeys("n"), key.WithHelp("n", "new")),
-	Edit:   key.NewBinding(key.WithKeys("e"), key.WithHelp("e", "edit")),
-	Delete: key.NewBinding(key.WithKeys("d"), key.WithHelp("d", "delete")),
-	Run:    key.NewBinding(key.WithKeys("r"), key.WithHelp("r", "run now")),
-	Logs:   key.NewBinding(key.WithKeys("l"), key.WithHelp("l", "logs")),
-	Toggle: key.NewBinding(key.WithKeys("t"), key.WithHelp("t", "toggle")),
-	Quit:   key.NewBinding(key.WithKeys("q", "ctrl+c"), key.WithHelp("q", "quit")),
+	New:     key.NewBinding(key.WithKeys("n"), key.WithHelp("n", "new")),
+	Edit:    key.NewBinding(key.WithKeys("e"), key.WithHelp("e", "edit")),
+	Delete:  key.NewBinding(key.WithKeys("d"), key.WithHelp("d", "delete")),
+	Run:     key.NewBinding(key.WithKeys("r"), key.WithHelp("r", "run now")),
+	Logs:    key.NewBinding(key.WithKeys("l"), key.WithHelp("l", "logs")),
+	Toggle:  key.NewBinding(key.WithKeys("t"), key.WithHelp("t", "toggle")),
+	Quit:    key.NewBinding(key.WithKeys("q", "ctrl+c"), key.WithHelp("q", "quit")),
+	Restart: key.NewBinding(key.WithKeys("R"), key.WithHelp("R", "restart daemon")),
 }
 
 type FormKeyMap struct {

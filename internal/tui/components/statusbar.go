@@ -7,11 +7,14 @@ import (
 	"github.com/tenlisboa/tempo/internal/tui/shared"
 )
 
-func StatusBar(width int, daemonOK bool, helpText string) string {
+func StatusBar(width int, daemonOK bool, daemonRestarting bool, helpText string) string {
 	var status string
-	if daemonOK {
+	switch {
+	case daemonRestarting:
+		status = shared.StyleDaemonRestarting.Render("◌ daemon: restarting...")
+	case daemonOK:
 		status = shared.StyleDaemonOK.Render("● daemon: connected")
-	} else {
+	default:
 		status = shared.StyleDaemonErr.Render("○ daemon: disconnected")
 	}
 

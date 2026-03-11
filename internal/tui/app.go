@@ -3,6 +3,8 @@ package tui
 import (
 	"encoding/json"
 	"fmt"
+	"os/exec"
+	"runtime"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -20,15 +22,16 @@ const (
 )
 
 type App struct {
-	client         *ipc.Client
-	state          viewState
-	listView       views.TaskListView
-	formView       views.TaskFormView
-	logView        views.LogViewerView
-	daemonOK       bool
-	width          int
-	height         int
-	initialWorkDir string
+	client           *ipc.Client
+	state            viewState
+	listView         views.TaskListView
+	formView         views.TaskFormView
+	logView          views.LogViewerView
+	daemonOK         bool
+	daemonRestarting bool
+	width            int
+	height           int
+	initialWorkDir   string
 }
 
 func NewApp(client *ipc.Client, initialWorkDir string) *App {
@@ -39,6 +42,7 @@ type tickMsg struct{}
 type tasksLoadedMsg struct{ tasks []*store.Task }
 type logsLoadedMsg struct{ logs []*store.RunLog }
 type daemonStatusMsg struct{ ok bool }
+type daemonRestartedMsg struct{ err error }
 type errMsg struct{ err error }
 
 func tick() tea.Cmd {
@@ -109,6 +113,16 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case views.DeleteConfirmedMsg:
 		return a, a.cmdDeleteTask(msg.TaskID)
+
+	case views.RestartDaemonMsg:
+		a.daemonRestarting = true
+		a.listView = a.listView.WithDaemonRestarting(true)
+		return a, a.cmdRestartDaemon()
+
+	case daemonRestartedMsg:
+		a.daemonRestarting = false
+		a.listView = a.listView.WithDaemonRestarting(false)
+		return a, nil
 
 	case tea.KeyMsg:
 		return a.handleKey(msg)
@@ -254,5 +268,17 @@ func (a *App) cmdToggleTask(id string) tea.Cmd {
 			}
 		}
 		return a.cmdLoadTasks()()
+	}
+}
+
+func (a *App) cmdRestartDaemon() tea.Cmd {
+	return func() tea.Msg {
+		var cmd *exec.Cmd
+		if runtime.GOOS == "darwin" {
+			cmd = exec.Command("launchctl", "stop", "com.tempod")
+		} else {
+			cmd = exec.Command("systemctl", "--user", "restart", "tempod")
+		}
+		return daemonRestartedMsg{err: cmd.Run()}
 	}
 }

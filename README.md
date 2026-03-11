@@ -11,6 +11,7 @@ Cron for Claude — run prompts on a schedule from a terminal UI.
 ```bash
 curl -L https://github.com/tenlisboa/tempo/releases/latest/download/tempo_linux_amd64.tar.gz | tar -xz
 mkdir -p ~/.local/bin
+systemctl --user stop tempod 2>/dev/null || true
 mv tempod tempo ~/.local/bin/
 mkdir -p ~/.config/systemd/user
 cp tempod.service ~/.config/systemd/user/
@@ -23,6 +24,7 @@ systemctl --user enable --now tempod
 ```bash
 curl -L https://github.com/tenlisboa/tempo/releases/latest/download/tempo_linux_amd64.tar.gz | tar -xz
 mkdir -p ~/.local/bin
+pkill tempod 2>/dev/null || true
 mv tempod tempo ~/.local/bin/
 tempod &
 ```
@@ -36,6 +38,7 @@ For ARM64, replace `linux_amd64` with `linux_arm64` in the download URL.
 ```bash
 curl -L https://github.com/tenlisboa/tempo/releases/latest/download/tempo_darwin_arm64.tar.gz | tar -xz
 mkdir -p ~/.local/bin
+launchctl unload ~/Library/LaunchAgents/com.tempod.plist 2>/dev/null || true
 mv tempod tempo ~/.local/bin/
 sed "s|/Users/Shared/placeholder|$(which tempod)|" com.tempod.plist \
   > ~/Library/LaunchAgents/com.tempod.plist
@@ -47,6 +50,7 @@ launchctl load -w ~/Library/LaunchAgents/com.tempod.plist
 ```bash
 curl -L https://github.com/tenlisboa/tempo/releases/latest/download/tempo_darwin_arm64.tar.gz | tar -xz
 mkdir -p ~/.local/bin
+pkill tempod 2>/dev/null || true
 mv tempod tempo ~/.local/bin/
 tempod &
 ```

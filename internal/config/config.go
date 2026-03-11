@@ -6,7 +6,7 @@ import (
 )
 
 const AppName = "tempo"
-const Version = "0.1.3"
+const Version = "0.1.4"
 
 type Config struct {
 	DataDir    string

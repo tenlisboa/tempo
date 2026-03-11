@@ -14,12 +14,13 @@ import (
 )
 
 type TaskListView struct {
-	tasks      []*store.Task
-	cursor     int
-	width      int
-	height     int
-	daemonOK   bool
-	confirming *components.Confirm
+	tasks            []*store.Task
+	cursor           int
+	width            int
+	height           int
+	daemonOK         bool
+	daemonRestarting bool
+	confirming       *components.Confirm
 }
 
 func NewTaskList(tasks []*store.Task, width, height int, daemonOK bool) TaskListView {
@@ -42,6 +43,11 @@ func (v TaskListView) WithSize(w, h int) TaskListView {
 
 func (v TaskListView) WithDaemon(ok bool) TaskListView {
 	v.daemonOK = ok
+	return v
+}
+
+func (v TaskListView) WithDaemonRestarting(restarting bool) TaskListView {
+	v.daemonRestarting = restarting
 	return v
 }
 
@@ -98,6 +104,8 @@ func (v TaskListView) Update(msg tea.KeyMsg) (TaskListView, tea.Cmd) {
 		if t := v.SelectedTask(); t != nil {
 			return v, func() tea.Msg { return ToggleTaskMsg{TaskID: t.ID} }
 		}
+	case key.Matches(msg, shared.ListKeys.Restart):
+		return v, func() tea.Msg { return RestartDaemonMsg{} }
 	case key.Matches(msg, shared.ListKeys.Quit):
 		return v, tea.Quit
 	}
@@ -144,8 +152,11 @@ func (v TaskListView) View() string {
 	}
 
 	helpText := "n new  e edit  d del  r run  l logs  t toggle  q quit"
+	if !v.daemonOK && !v.daemonRestarting {
+		helpText += "  R restart"
+	}
 	divider := shared.StyleDivider.Render(strings.Repeat("─", v.width))
-	statusBar := components.StatusBar(v.width, v.daemonOK, helpText)
+	statusBar := components.StatusBar(v.width, v.daemonOK, v.daemonRestarting, helpText)
 
 	return rendered + divider + "\n" + statusBar
 }
@@ -205,3 +216,4 @@ type OpenLogsMsg struct{ Task *store.Task }
 type RunTaskMsg struct{ TaskID string }
 type ToggleTaskMsg struct{ TaskID string }
 type DeleteConfirmedMsg struct{ TaskID string }
+type RestartDaemonMsg struct{}
