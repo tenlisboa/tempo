@@ -27,6 +27,9 @@ var (
 	StyleBadgeDisabled = lipgloss.NewStyle().
 				Foreground(ColorMuted)
 
+	StyleBadgePrimary = lipgloss.NewStyle().
+				Foreground(ColorPrimary)
+
 	StyleBadgeSuccess = lipgloss.NewStyle().
 				Foreground(ColorSuccess).
 				Bold(true)

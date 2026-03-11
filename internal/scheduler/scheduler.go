@@ -86,6 +86,20 @@ func (s *Scheduler) RunNow(ctx context.Context, task *store.Task) (*store.RunLog
 	return s.runner.Run(ctx, task, "manual")
 }
 
+func (s *Scheduler) NextRunAt(taskID string) *time.Time {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	job, ok := s.jobs[taskID]
+	if !ok {
+		return nil
+	}
+	t, err := job.NextRun()
+	if err != nil || t.IsZero() {
+		return nil
+	}
+	return &t
+}
+
 func jobDef(task *store.Task) (gocron.JobDefinition, error) {
 	switch task.ScheduleType {
 	case store.ScheduleOnce:

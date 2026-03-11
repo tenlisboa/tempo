@@ -37,7 +37,16 @@ func (h *handlers) ping(req *ipc.Request) (any, error) {
 }
 
 func (h *handlers) taskList(req *ipc.Request) (any, error) {
-	return h.st.ListTasks()
+	tasks, err := h.st.ListTasks()
+	if err != nil {
+		return nil, err
+	}
+	for _, t := range tasks {
+		if t.Enabled {
+			t.NextRunAt = h.sched.NextRunAt(t.ID)
+		}
+	}
+	return tasks, nil
 }
 
 func (h *handlers) taskCreate(req *ipc.Request) (any, error) {

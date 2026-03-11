@@ -169,6 +169,13 @@ func (v TaskListView) renderRow(idx int, t *store.Task) string {
 		enabledBadge = shared.StyleBadgeDisabled.Render("○")
 	}
 
+	var runningBadge string
+	if t.Running {
+		runningBadge = shared.StyleBadgePrimary.Render("⟳")
+	} else {
+		runningBadge = " "
+	}
+
 	var exitBadge string
 	if t.LastExitCode != nil {
 		if *t.LastExitCode == 0 {
@@ -186,15 +193,34 @@ func (v TaskListView) renderRow(idx int, t *store.Task) string {
 	}
 
 	name := t.Name
-	schedule := shared.StyleSubtle.Render(fmt.Sprintf("%s · %s", t.ScheduleType, t.ScheduleExpr))
+	schedule := shared.StyleSubtle.Render(formatScheduleHuman(t.ScheduleType, t.ScheduleExpr))
 
-	row := fmt.Sprintf("  %s %s  %s  %s  %s", enabledBadge, exitBadge, name, schedule, lastRun)
+	var nextRun string
+	if t.NextRunAt != nil {
+		nextRun = shared.StyleSubtle.Render("next: " + formatFuture(*t.NextRunAt))
+	}
+
+	row := fmt.Sprintf("  %s %s %s  %s  %s  %s  %s", enabledBadge, runningBadge, exitBadge, name, schedule, lastRun, nextRun)
 
 	if idx == v.cursor {
 		row = shared.StyleSelected.Width(v.width - 2).Render(row)
 	}
 
 	return lipgloss.NewStyle().PaddingLeft(1).Render(row)
+}
+
+func formatFuture(t time.Time) string {
+	d := time.Until(t)
+	switch {
+	case d <= 0:
+		return "now"
+	case d < time.Hour:
+		return fmt.Sprintf("in %dm", int(d.Minutes()))
+	case d < 24*time.Hour:
+		return fmt.Sprintf("in %dh", int(d.Hours()))
+	default:
+		return fmt.Sprintf("in %dd", int(d.Hours()/24))
+	}
 }
 
 func formatRelative(t time.Time) string {

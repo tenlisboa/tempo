@@ -25,6 +25,8 @@ type Task struct {
 	UpdatedAt        time.Time
 	LastRunAt        *time.Time
 	LastExitCode     *int
+	Running          bool
+	NextRunAt        *time.Time
 }
 
 type RunLog struct {

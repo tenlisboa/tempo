@@ -86,14 +86,19 @@ func (s *sqliteStore) GetTask(id string) (*Task, error) {
 }
 
 func (s *sqliteStore) ListTasks() ([]*Task, error) {
-	rows, err := s.db.Query(`SELECT * FROM tasks ORDER BY created_at ASC`)
+	rows, err := s.db.Query(`
+		SELECT t.id, t.name, t.prompt, t.schedule_type, t.schedule_expr,
+		       t.enabled, t.work_dir, t.skip_permissions,
+		       t.created_at, t.updated_at, t.last_run_at, t.last_exit_code,
+		       EXISTS(SELECT 1 FROM run_logs WHERE task_id = t.id AND ended_at IS NULL) as running
+		FROM tasks t ORDER BY t.created_at ASC`)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 	var tasks []*Task
 	for rows.Next() {
-		t, err := scanTask(rows)
+		t, err := scanTaskWithRunning(rows)
 		if err != nil {
 			return nil, err
 		}
@@ -183,6 +188,39 @@ func scanTask(s scanner) (*Task, error) {
 	}
 	t.Enabled = enabled == 1
 	t.SkipPermissions = skipPerms == 1
+	t.CreatedAt = time.Unix(createdAt, 0)
+	t.UpdatedAt = time.Unix(updatedAt, 0)
+	if lastRunAt.Valid {
+		ts := time.Unix(lastRunAt.Int64, 0)
+		t.LastRunAt = &ts
+	}
+	if lastExitCode.Valid {
+		v := int(lastExitCode.Int64)
+		t.LastExitCode = &v
+	}
+	return &t, nil
+}
+
+func scanTaskWithRunning(s scanner) (*Task, error) {
+	var t Task
+	var createdAt, updatedAt int64
+	var lastRunAt sql.NullInt64
+	var lastExitCode sql.NullInt64
+	var enabled, skipPerms, running int
+	err := s.Scan(
+		&t.ID, &t.Name, &t.Prompt,
+		&t.ScheduleType, &t.ScheduleExpr,
+		&enabled, &t.WorkDir, &skipPerms,
+		&createdAt, &updatedAt,
+		&lastRunAt, &lastExitCode,
+		&running,
+	)
+	if err != nil {
+		return nil, err
+	}
+	t.Enabled = enabled == 1
+	t.SkipPermissions = skipPerms == 1
+	t.Running = running == 1
 	t.CreatedAt = time.Unix(createdAt, 0)
 	t.UpdatedAt = time.Unix(updatedAt, 0)
 	if lastRunAt.Valid {

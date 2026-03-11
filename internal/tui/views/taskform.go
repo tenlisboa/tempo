@@ -283,6 +283,14 @@ func (v TaskFormView) View() string {
 	sb.WriteString(fieldRow("Schedule Type", v.scheduleTypeSelector(), v.focused == fieldScheduleType))
 	sb.WriteString("\n\n")
 	sb.WriteString(fieldRow("Schedule Expr", v.scheduleExpr.View(), v.focused == fieldScheduleExpr))
+	sb.WriteString("\n")
+	currentExpr := strings.TrimSpace(v.scheduleExpr.Value())
+	schedType := scheduleTypes[v.scheduleType]
+	if currentExpr != "" {
+		preview := formatScheduleHuman(schedType, currentExpr)
+		indent := strings.Repeat(" ", 19)
+		sb.WriteString(indent + shared.StyleSubtle.Render("→ "+preview))
+	}
 	sb.WriteString("\n\n")
 	sb.WriteString(fieldRow("Work Dir", v.workDir.View(), v.focused == fieldWorkDir))
 	if v.focused == fieldWorkDir && len(v.pathSuggestions) > 0 {
