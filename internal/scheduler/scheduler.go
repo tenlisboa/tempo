@@ -17,17 +17,22 @@ type Scheduler struct {
 	sched  gocron.Scheduler
 	runner *Runner
 	jobs   map[string]gocron.Job
+	ctx    context.Context
+	cancel context.CancelFunc
 }
 
-func New(runner *Runner) (*Scheduler, error) {
+func New(ctx context.Context, runner *Runner) (*Scheduler, error) {
 	s, err := gocron.NewScheduler()
 	if err != nil {
 		return nil, err
 	}
+	ctx, cancel := context.WithCancel(ctx)
 	return &Scheduler{
 		sched:  s,
 		runner: runner,
 		jobs:   make(map[string]gocron.Job),
+		ctx:    ctx,
+		cancel: cancel,
 	}, nil
 }
 
@@ -36,6 +41,7 @@ func (s *Scheduler) Start() {
 }
 
 func (s *Scheduler) Stop() error {
+	s.cancel()
 	return s.sched.Shutdown()
 }
 

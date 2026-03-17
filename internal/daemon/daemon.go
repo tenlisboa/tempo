@@ -1,6 +1,7 @@
 package daemon
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/signal"
@@ -20,8 +21,11 @@ func Run(cfg *config.Config) error {
 	}
 	defer st.Close()
 
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	runner := scheduler.NewRunner(st, cfg.ClaudeBin)
-	sched, err := scheduler.New(runner)
+	sched, err := scheduler.New(ctx, runner)
 	if err != nil {
 		return fmt.Errorf("create scheduler: %w", err)
 	}
@@ -32,6 +36,7 @@ func Run(cfg *config.Config) error {
 	}
 	sched.LoadAll(tasks)
 	sched.Start()
+	sched.StartWatchdog(st)
 	defer sched.Stop()
 
 	srv := ipc.NewServer(cfg.SocketPath)
