@@ -26,7 +26,11 @@ func (s *Scheduler) StartWatchdog(st store.Store) {
 				elapsed := now.Sub(lastTick)
 				if elapsed > sleepThreshold {
 					log.Printf("watchdog: detected time jump of %s (sleep/suspend), recovering missed jobs", elapsed.Round(time.Second))
-					s.recoverMissed(st, lastTick, now)
+					tasks := s.recoverMissed(st, lastTick, now)
+					if tasks != nil {
+						log.Printf("watchdog: resetting gocron timers for %d tasks", len(tasks))
+						s.resetTimers(tasks)
+					}
 				}
 				lastTick = now
 			}

@@ -3,6 +3,7 @@ package scheduler
 import (
 	"context"
 	"fmt"
+	"log"
 	"strconv"
 	"strings"
 	"sync"
@@ -53,6 +54,14 @@ func (s *Scheduler) LoadAll(tasks []*store.Task) {
 	}
 }
 
+func (s *Scheduler) newTask(task *store.Task) gocron.Task {
+	return gocron.NewTask(func(t *store.Task) {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+		defer cancel()
+		_, _ = s.runner.Run(ctx, t, "scheduled")
+	}, task)
+}
+
 func (s *Scheduler) Add(task *store.Task) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -62,11 +71,7 @@ func (s *Scheduler) Add(task *store.Task) error {
 		return err
 	}
 
-	job, err := s.sched.NewJob(def, gocron.NewTask(func(t *store.Task) {
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
-		defer cancel()
-		_, _ = s.runner.Run(ctx, t, "scheduled")
-	}, task))
+	job, err := s.sched.NewJob(def, s.newTask(task))
 	if err != nil {
 		return err
 	}
@@ -104,6 +109,47 @@ func (s *Scheduler) NextRunAt(taskID string) *time.Time {
 		return nil
 	}
 	return &t
+}
+
+func (s *Scheduler) resetTimers(tasks []*store.Task) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	taskByID := make(map[string]*store.Task, len(tasks))
+	for _, t := range tasks {
+		taskByID[t.ID] = t
+	}
+
+	for taskID, job := range s.jobs {
+		task, ok := taskByID[taskID]
+		if !ok || !task.Enabled {
+			continue
+		}
+
+		def, err := jobDef(task)
+		if err != nil {
+			log.Printf("watchdog: failed to build job def for %q: %v", task.Name, err)
+			continue
+		}
+
+		opts := []gocron.JobOption{}
+		if task.ScheduleType == store.ScheduleInterval && task.LastRunAt != nil {
+			d, err := time.ParseDuration(task.ScheduleExpr)
+			if err == nil {
+				nextDue := task.LastRunAt.Add(d)
+				if nextDue.After(time.Now()) {
+					opts = append(opts, gocron.WithStartAt(gocron.WithStartDateTime(nextDue)))
+				}
+			}
+		}
+
+		updated, err := s.sched.Update(job.ID(), def, s.newTask(task), opts...)
+		if err != nil {
+			log.Printf("watchdog: failed to reset timer for %q: %v", task.Name, err)
+			continue
+		}
+		s.jobs[taskID] = updated
+	}
 }
 
 func jobDef(task *store.Task) (gocron.JobDefinition, error) {

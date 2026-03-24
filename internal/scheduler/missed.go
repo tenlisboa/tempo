@@ -11,11 +11,11 @@ import (
 	"github.com/tenlisboa/tempo/internal/store"
 )
 
-func (s *Scheduler) recoverMissed(st store.Store, sleepStart, now time.Time) {
+func (s *Scheduler) recoverMissed(st store.Store, sleepStart, now time.Time) []*store.Task {
 	tasks, err := st.ListTasks()
 	if err != nil {
 		log.Printf("watchdog: failed to list tasks: %v", err)
-		return
+		return nil
 	}
 
 	for _, task := range tasks {
@@ -32,6 +32,7 @@ func (s *Scheduler) recoverMissed(st store.Store, sleepStart, now time.Time) {
 			cancel()
 		}
 	}
+	return tasks
 }
 
 func shouldHaveRun(task *store.Task, sleepStart, now time.Time) bool {
