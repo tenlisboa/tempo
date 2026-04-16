@@ -132,6 +132,81 @@ func shouldHaveRunCron(task *store.Task, sleepStart, now time.Time) bool {
 	return next.Before(now)
 }
 
+const overdueGrace = 4 * time.Hour
+
+func (s *Scheduler) checkOverdue(st store.Store, now time.Time) {
+	tasks, err := st.ListTasks()
+	if err != nil {
+		log.Printf("watchdog: failed to list tasks for overdue check: %v", err)
+		return
+	}
+	for _, task := range tasks {
+		if !task.Enabled || task.Running {
+			continue
+		}
+		if !isOverdue(task, now) {
+			continue
+		}
+		log.Printf("watchdog: task %q is overdue, triggering", task.Name)
+		ctx, cancel := context.WithTimeout(s.ctx, 10*time.Minute)
+		s.runner.Run(ctx, task, "scheduled")
+		cancel()
+	}
+}
+
+func isOverdue(task *store.Task, now time.Time) bool {
+	switch task.ScheduleType {
+	case store.ScheduleDaily:
+		return isDailyOverdue(task, now)
+	case store.ScheduleWeekly:
+		return isWeeklyOverdue(task, now)
+	default:
+		return false
+	}
+}
+
+func isDailyOverdue(task *store.Task, now time.Time) bool {
+	h, m, err := parseHHMM(task.ScheduleExpr)
+	if err != nil {
+		return false
+	}
+	scheduled := time.Date(now.Year(), now.Month(), now.Day(), h, m, 0, 0, now.Location())
+	return overdueWithin(scheduled, now, task.LastRunAt)
+}
+
+func isWeeklyOverdue(task *store.Task, now time.Time) bool {
+	parts := strings.SplitN(task.ScheduleExpr, ":", 2)
+	if len(parts) != 2 {
+		return false
+	}
+	weekday, err := parseWeekday(parts[0])
+	if err != nil {
+		return false
+	}
+	if now.Weekday() != weekday {
+		return false
+	}
+	h, m, err := parseHHMM(parts[1])
+	if err != nil {
+		return false
+	}
+	scheduled := time.Date(now.Year(), now.Month(), now.Day(), h, m, 0, 0, now.Location())
+	return overdueWithin(scheduled, now, task.LastRunAt)
+}
+
+func overdueWithin(scheduled, now time.Time, lastRun *time.Time) bool {
+	if now.Before(scheduled) {
+		return false
+	}
+	if now.Sub(scheduled) > overdueGrace {
+		return false
+	}
+	if lastRun != nil && !lastRun.Before(scheduled) {
+		return false
+	}
+	return true
+}
+
 func splitHHMM(s string) []int {
 	h, m, err := parseHHMM(s)
 	if err != nil {

@@ -32,6 +32,7 @@ func (s *Scheduler) StartWatchdog(st store.Store) {
 						s.resetTimers(tasks)
 					}
 				}
+				s.checkOverdue(st, now)
 				lastTick = now
 			}
 		}
