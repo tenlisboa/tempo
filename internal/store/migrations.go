@@ -30,4 +30,6 @@ INSERT INTO schema_version (version) SELECT 0 WHERE NOT EXISTS (SELECT 1 FROM sc
 	);
 
 	CREATE INDEX IF NOT EXISTS idx_run_logs_task_id ON run_logs(task_id, started_at DESC);`,
+
+	`ALTER TABLE tasks ADD COLUMN agent TEXT NOT NULL DEFAULT 'claude';`,
 }

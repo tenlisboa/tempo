@@ -13,20 +13,21 @@ const (
 )
 
 type Task struct {
-	ID               string
-	Name             string
-	Prompt           string
-	ScheduleType     ScheduleType
-	ScheduleExpr     string
-	Enabled          bool
-	WorkDir          string
-	SkipPermissions  bool
-	CreatedAt        time.Time
-	UpdatedAt        time.Time
-	LastRunAt        *time.Time
-	LastExitCode     *int
-	Running          bool
-	NextRunAt        *time.Time
+	ID              string
+	Name            string
+	Prompt          string
+	ScheduleType    ScheduleType
+	ScheduleExpr    string
+	Enabled         bool
+	WorkDir         string
+	SkipPermissions bool
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
+	LastRunAt       *time.Time
+	LastExitCode    *int
+	Agent           string
+	Running         bool
+	NextRunAt       *time.Time
 }
 
 type RunLog struct {

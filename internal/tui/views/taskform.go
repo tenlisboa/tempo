@@ -21,6 +21,7 @@ type fieldIndex int
 const (
 	fieldName fieldIndex = iota
 	fieldPrompt
+	fieldAgent
 	fieldScheduleType
 	fieldScheduleExpr
 	fieldWorkDir
@@ -34,6 +35,7 @@ type TaskFormView struct {
 	focused         fieldIndex
 	name            textinput.Model
 	prompt          textarea.Model
+	agent           int
 	scheduleType    int
 	scheduleExpr    textinput.Model
 	workDir         textinput.Model
@@ -46,6 +48,8 @@ type TaskFormView struct {
 	pathSuggestions []string
 	suggestionIdx   int
 }
+
+var agents = []string{"claude", "codex"}
 
 var scheduleTypes = []store.ScheduleType{
 	store.ScheduleInterval,
@@ -61,7 +65,7 @@ func NewTaskForm(task *store.Task, width, height int, initialWorkDir string) Tas
 	name.Focus()
 
 	prompt := textarea.New()
-	prompt.Placeholder = "Claude prompt..."
+	prompt.Placeholder = "Agent prompt..."
 	prompt.SetWidth(width - 6)
 	prompt.SetHeight(5)
 
@@ -90,6 +94,7 @@ func NewTaskForm(task *store.Task, width, height int, initialWorkDir string) Tas
 		v.workDir.SetValue(task.WorkDir)
 		v.skipPerms = task.SkipPermissions
 		v.enabled = task.Enabled
+		v.agent = indexOf(task.Agent, agents)
 		for i, st := range scheduleTypes {
 			if st == task.ScheduleType {
 				v.scheduleType = i
@@ -162,6 +167,17 @@ func (v TaskFormView) Update(msg tea.KeyMsg) (TaskFormView, tea.Cmd) {
 		var cmd tea.Cmd
 		v.prompt, cmd = v.prompt.Update(msg)
 		return v, cmd
+	case fieldAgent:
+		switch msg.String() {
+		case "left", "h":
+			if v.agent > 0 {
+				v.agent--
+			}
+		case "right", "l":
+			if v.agent < len(agents)-1 {
+				v.agent++
+			}
+		}
 	case fieldScheduleType:
 		switch msg.String() {
 		case "left", "h":
@@ -252,6 +268,7 @@ func (v TaskFormView) save() (TaskFormView, tea.Cmd) {
 		ID:              id,
 		Name:            name,
 		Prompt:          prompt,
+		Agent:           agents[v.agent],
 		ScheduleType:    scheduleTypes[v.scheduleType],
 		ScheduleExpr:    expr,
 		WorkDir:         strings.TrimSpace(v.workDir.Value()),
@@ -280,6 +297,8 @@ func (v TaskFormView) View() string {
 	sb.WriteString("\n\n")
 	sb.WriteString(fieldRow("Prompt", v.prompt.View(), v.focused == fieldPrompt))
 	sb.WriteString("\n\n")
+	sb.WriteString(fieldRow("Agent", v.agentSelector(), v.focused == fieldAgent))
+	sb.WriteString("\n\n")
 	sb.WriteString(fieldRow("Schedule Type", v.scheduleTypeSelector(), v.focused == fieldScheduleType))
 	sb.WriteString("\n\n")
 	sb.WriteString(fieldRow("Schedule Expr", v.scheduleExpr.View(), v.focused == fieldScheduleExpr))
@@ -298,7 +317,7 @@ func (v TaskFormView) View() string {
 		sb.WriteString(v.renderSuggestions())
 	}
 	sb.WriteString("\n\n")
-	sb.WriteString(fieldRow("Skip Permissions", checkbox(v.skipPerms), v.focused == fieldSkipPerms))
+	sb.WriteString(fieldRow("Bypass Approvals", checkbox(v.skipPerms), v.focused == fieldSkipPerms))
 	sb.WriteString("\n\n")
 	sb.WriteString(fieldRow("Enabled", checkbox(v.enabled), v.focused == fieldEnabled))
 	sb.WriteString("\n\n")
@@ -333,6 +352,31 @@ func (v TaskFormView) scheduleTypeSelector() string {
 		}
 	}
 	return strings.Join(parts, " ")
+}
+
+func (v TaskFormView) agentSelector() string {
+	return radioSelector(agents, v.agent)
+}
+
+func radioSelector(options []string, selected int) string {
+	var parts []string
+	for i, o := range options {
+		if i == selected {
+			parts = append(parts, shared.StyleBadgeEnabled.Render("["+o+"]"))
+		} else {
+			parts = append(parts, shared.StyleSubtle.Render(" "+o+" "))
+		}
+	}
+	return strings.Join(parts, " ")
+}
+
+func indexOf(s string, options []string) int {
+	for i, o := range options {
+		if o == s {
+			return i
+		}
+	}
+	return 0
 }
 
 func checkbox(v bool) string {

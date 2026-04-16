@@ -8,6 +8,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/tenlisboa/tempo/internal/agent"
 	"github.com/tenlisboa/tempo/internal/config"
 	"github.com/tenlisboa/tempo/internal/ipc"
 	"github.com/tenlisboa/tempo/internal/scheduler"
@@ -24,7 +25,8 @@ func Run(cfg *config.Config) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	runner := scheduler.NewRunner(st, cfg.ClaudeBin)
+	reg := agent.NewRegistry(cfg.ClaudeBin, cfg.CodexBin)
+	runner := scheduler.NewRunner(st, reg)
 	sched, err := scheduler.New(ctx, runner)
 	if err != nil {
 		return fmt.Errorf("create scheduler: %w", err)

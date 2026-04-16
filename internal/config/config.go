@@ -13,6 +13,7 @@ type Config struct {
 	SocketPath string
 	DBPath     string
 	ClaudeBin  string
+	CodexBin   string
 }
 
 func Load() *Config {
@@ -22,6 +23,7 @@ func Load() *Config {
 		SocketPath: filepath.Join(dataDir, "daemon.sock"),
 		DBPath:     filepath.Join(dataDir, "tasks.db"),
 		ClaudeBin:  claudeBin(),
+		CodexBin:   codexBin(),
 	}
 }
 
@@ -38,4 +40,11 @@ func claudeBin() string {
 		return b
 	}
 	return "claude"
+}
+
+func codexBin() string {
+	if b := os.Getenv("CODEX_BIN"); b != "" {
+		return b
+	}
+	return "codex"
 }
