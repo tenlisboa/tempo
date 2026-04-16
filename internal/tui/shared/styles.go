@@ -63,7 +63,7 @@ var (
 			Foreground(ColorDanger)
 
 	StyleDaemonRestarting = lipgloss.NewStyle().
-			Foreground(ColorMuted)
+				Foreground(ColorMuted)
 
 	StyleFocused = lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).

@@ -6,16 +6,17 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/tenlisboa/tempo/internal/agent"
 	"github.com/tenlisboa/tempo/internal/store"
 )
 
 type Runner struct {
-	st        store.Store
-	claudeBin string
+	st       store.Store
+	registry *agent.Registry
 }
 
-func NewRunner(st store.Store, claudeBin string) *Runner {
-	return &Runner{st: st, claudeBin: claudeBin}
+func NewRunner(st store.Store, registry *agent.Registry) *Runner {
+	return &Runner{st: st, registry: registry}
 }
 
 func (r *Runner) Run(ctx context.Context, task *store.Task, triggered string) (*store.RunLog, error) {
@@ -29,15 +30,8 @@ func (r *Runner) Run(ctx context.Context, task *store.Task, triggered string) (*
 		return nil, err
 	}
 
-	args := []string{"--print", task.Prompt}
-	if task.SkipPermissions {
-		args = append(args, "--dangerously-skip-permissions")
-	}
-
-	cmd := exec.CommandContext(ctx, r.claudeBin, args...)
-	if task.WorkDir != "" {
-		cmd.Dir = task.WorkDir
-	}
+	ag := r.registry.Get(agent.Kind(task.Agent))
+	cmd := ag.BuildCommand(ctx, task.Prompt, task.SkipPermissions, task.WorkDir)
 
 	out, err := cmd.CombinedOutput()
 	now := time.Now()

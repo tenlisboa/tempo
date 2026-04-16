@@ -54,12 +54,12 @@ func (s *sqliteStore) Close() error {
 
 func (s *sqliteStore) CreateTask(t *Task) error {
 	_, err := s.db.Exec(
-		`INSERT INTO tasks (id,name,prompt,schedule_type,schedule_expr,enabled,work_dir,skip_permissions,created_at,updated_at,last_run_at,last_exit_code)
-		 VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
+		`INSERT INTO tasks (id,name,prompt,schedule_type,schedule_expr,enabled,work_dir,skip_permissions,created_at,updated_at,last_run_at,last_exit_code,agent)
+		 VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`,
 		t.ID, t.Name, t.Prompt, t.ScheduleType, t.ScheduleExpr,
 		boolInt(t.Enabled), t.WorkDir, boolInt(t.SkipPermissions),
 		t.CreatedAt.Unix(), t.UpdatedAt.Unix(),
-		timePtr(t.LastRunAt), t.LastExitCode,
+		timePtr(t.LastRunAt), t.LastExitCode, t.Agent,
 	)
 	return err
 }
@@ -67,10 +67,10 @@ func (s *sqliteStore) CreateTask(t *Task) error {
 func (s *sqliteStore) UpdateTask(t *Task) error {
 	t.UpdatedAt = time.Now()
 	_, err := s.db.Exec(
-		`UPDATE tasks SET name=?,prompt=?,schedule_type=?,schedule_expr=?,enabled=?,work_dir=?,skip_permissions=?,updated_at=? WHERE id=?`,
+		`UPDATE tasks SET name=?,prompt=?,schedule_type=?,schedule_expr=?,enabled=?,work_dir=?,skip_permissions=?,updated_at=?,agent=? WHERE id=?`,
 		t.Name, t.Prompt, t.ScheduleType, t.ScheduleExpr,
 		boolInt(t.Enabled), t.WorkDir, boolInt(t.SkipPermissions),
-		t.UpdatedAt.Unix(), t.ID,
+		t.UpdatedAt.Unix(), t.Agent, t.ID,
 	)
 	return err
 }
@@ -81,7 +81,7 @@ func (s *sqliteStore) DeleteTask(id string) error {
 }
 
 func (s *sqliteStore) GetTask(id string) (*Task, error) {
-	row := s.db.QueryRow(`SELECT * FROM tasks WHERE id=?`, id)
+	row := s.db.QueryRow(`SELECT id, name, prompt, schedule_type, schedule_expr, enabled, work_dir, skip_permissions, created_at, updated_at, last_run_at, last_exit_code, agent FROM tasks WHERE id=?`, id)
 	return scanTask(row)
 }
 
@@ -90,6 +90,7 @@ func (s *sqliteStore) ListTasks() ([]*Task, error) {
 		SELECT t.id, t.name, t.prompt, t.schedule_type, t.schedule_expr,
 		       t.enabled, t.work_dir, t.skip_permissions,
 		       t.created_at, t.updated_at, t.last_run_at, t.last_exit_code,
+		       t.agent,
 		       EXISTS(SELECT 1 FROM run_logs WHERE task_id = t.id AND ended_at IS NULL) as running
 		FROM tasks t ORDER BY t.created_at ASC`)
 	if err != nil {
@@ -182,6 +183,7 @@ func scanTask(s scanner) (*Task, error) {
 		&enabled, &t.WorkDir, &skipPerms,
 		&createdAt, &updatedAt,
 		&lastRunAt, &lastExitCode,
+		&t.Agent,
 	)
 	if err != nil {
 		return nil, err
@@ -213,6 +215,7 @@ func scanTaskWithRunning(s scanner) (*Task, error) {
 		&enabled, &t.WorkDir, &skipPerms,
 		&createdAt, &updatedAt,
 		&lastRunAt, &lastExitCode,
+		&t.Agent,
 		&running,
 	)
 	if err != nil {

@@ -15,7 +15,11 @@ Handlers are registered in `handlers.go` for these IPC methods:
 
 ## Scheduler (`internal/scheduler/`)
 
-`Scheduler` wraps `gocron.Scheduler` and maps task IDs to live `gocron.Job` handles. `Runner.Run` executes `claude --print <prompt>` as a subprocess, writing a `RunLog` before and after.
+`Scheduler` wraps `gocron.Scheduler` and maps task IDs to live `gocron.Job` handles. `Runner.Run` dispatches to the appropriate agent via `agent.Registry.Get(task.Agent)`, then calls `BuildCommand` to construct the subprocess, writing a `RunLog` before and after.
+
+### Agent abstraction (`internal/agent/`)
+
+`agent.Registry` holds one implementation per `Kind` (`"claude"`, `"codex"`). `Runner` holds a `*Registry` and calls `Get(agent.Kind(task.Agent))` at run time — unknown or empty values fall back to the Claude agent. Each implementation's `BuildCommand` constructs the correct `exec.Cmd` for that CLI tool.
 
 Schedule types and their `ScheduleExpr` formats:
 | Type       | Expression format          | Example        |
@@ -53,3 +57,4 @@ Data dir: `$XDG_DATA_HOME/tempo` → falls back to `~/.local/share/tempo`.
 Env overrides:
 - `XDG_DATA_HOME` — changes the data directory root
 - `CLAUDE_BIN` — path to the `claude` binary (default: `"claude"`)
+- `CODEX_BIN` — path to the `codex` binary (default: `"codex"`)

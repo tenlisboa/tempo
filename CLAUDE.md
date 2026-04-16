@@ -44,6 +44,6 @@ go run ./cmd/tempo   # run TUI (daemon must be running)
 
 - The TUI connects to the daemon over a Unix socket — `tempo` will silently degrade if `tempod` is not running
 - Data lives in `$XDG_DATA_HOME/tempo` (default `~/.local/share/tempo`); socket and DB paths derive from there
-- Override the `claude` binary with `CLAUDE_BIN` env var
+- Override agent binaries with `CLAUDE_BIN` (default `"claude"`) and `CODEX_BIN` (default `"codex"`) env vars; set the per-task `agent` field (`"claude"` or `"codex"`) to choose which agent runs the task
 - Scheduled jobs time out after 10 minutes (`context.WithTimeout`)
 - No test suite — validate changes by running both binaries manually
